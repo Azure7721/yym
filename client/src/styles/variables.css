@@ -1,0 +1,53 @@
+:root {
+  /* Colors from Figma */
+  --color-primary: #544B45;
+  --color-secondary: #93847B;
+  --color-bg-warm: #FBF7F6;
+  --color-bg-cream: #BAB395;
+  --color-bg-orange: #FFF2E5;
+  --color-bg-gray: #D9D9D9;
+  --color-text-dark: #544B45;
+  --color-text-muted: #93847B;
+  --color-text-black: #000000;
+  --color-accent-yellow: #F3DF60;
+  --color-white: #FFFFFF;
+
+  /* Typography */
+  --font-cn: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-en: 'Playfair Display', 'Georgia', serif;
+
+  /* Font sizes from Figma */
+  --text-xs: 14px;
+  --text-sm: 16px;
+  --text-base: 24px;
+  --text-lg: 30px;
+  --text-xl: 32px;
+  --text-2xl: 55px;
+  --text-3xl: 64px;
+  --text-4xl: 70px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Layout */
+  --nav-height: 80px;
+  --max-width: 1920px;
+  --content-padding: 65px;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  --transition-smooth: 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(84, 75, 69, 0.08);
+  --shadow-md: 0 4px 16px rgba(84, 75, 69, 0.12);
+  --shadow-lg: 0 8px 32px rgba(84, 75, 69, 0.16);
+}
