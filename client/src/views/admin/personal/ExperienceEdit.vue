@@ -4,9 +4,8 @@
       <h1 class="page-title">经历管理</h1>
       <div class="page-nav">
         <router-link to="/admin/personal/basic" class="nav-tab">基本信息</router-link>
+        <router-link to="/admin/personal/honors" class="nav-tab">获奖荣誉</router-link>
         <router-link to="/admin/personal/experience" class="nav-tab active">经历</router-link>
-        <router-link to="/admin/personal/skills" class="nav-tab">技能</router-link>
-        <router-link to="/admin/personal/honors" class="nav-tab">荣誉</router-link>
       </div>
     </div>
 

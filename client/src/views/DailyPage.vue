@@ -27,23 +27,24 @@
       <p class="daily-subtitle">{{ dailyData.subtitle }}</p>
     </section>
 
-    <!-- Boards carousel -->
+    <!-- Boards carousel with sliding + zoom effect -->
     <section class="boards-section">
       <!-- Left arrow -->
-      <button class="arrow-btn arrow-left" @click="scrollBoards(-1)" v-if="boards.length > 3">
+      <button class="arrow-btn arrow-left" @click="scrollBoards(-1)" v-if="boards.length > 1">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
 
       <!-- Boards container -->
-      <div class="boards-container" ref="boardsContainer">
+      <div class="boards-container">
         <div
           v-for="(board, index) in boards"
           :key="index"
           class="board-item"
           :class="getBoardClass(index)"
           :style="getBoardStyle(index)"
+          @click="activeBoard = index"
         >
           <div class="board-clip">
             <img :src="clipPaths[board.style]" alt="" class="clip-img" />
@@ -58,7 +59,7 @@
       </div>
 
       <!-- Right arrow -->
-      <button class="arrow-btn arrow-right" @click="scrollBoards(1)" v-if="boards.length > 3">
+      <button class="arrow-btn arrow-right" @click="scrollBoards(1)" v-if="boards.length > 1">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -82,39 +83,43 @@ const dailyData = ref({
 })
 
 const boards = ref<Board[]>([])
-const scrollOffset = ref(0)
-const boardsContainer = ref<HTMLElement>()
+const activeBoard = ref(0)
 
 const clipPaths: Record<string, string> = {
-  huaban1: '/images/figma/huaban1.jpg',
-  huaban2: '/images/figma/huaban2.jpg'
+  huaban1: '/images/figma/huaban1.png',
+  huaban2: '/images/figma/huaban2.png'
+}
+
+function getDistanceFromCenter(index: number): number {
+  return index - activeBoard.value
 }
 
 function getBoardClass(index: number): string {
-  const centerIndex = Math.floor(boards.value.length / 2) + scrollOffset.value
-  const dist = Math.abs(index - centerIndex)
+  const dist = Math.abs(getDistanceFromCenter(index))
   if (dist === 0) return 'board-center'
   if (dist === 1) return 'board-near'
   return 'board-far'
 }
 
 function getBoardStyle(index: number): Record<string, string> {
-  const centerIndex = Math.floor(boards.value.length / 2) + scrollOffset.value
-  const dist = Math.abs(index - centerIndex)
-  if (dist === 0) {
-    return { transform: 'scale(1)', opacity: '1', zIndex: '3' }
+  const dist = getDistanceFromCenter(index)
+  const absDist = Math.abs(dist)
+  const scale = absDist === 0 ? 1 : absDist === 1 ? 0.82 : 0.65
+  const opacity = absDist === 0 ? 1 : absDist === 1 ? 0.85 : 0.6
+  const zIndex = absDist === 0 ? 3 : absDist === 1 ? 2 : 1
+  const translateX = dist * 200
+
+  return {
+    transform: `translateX(${translateX}px) scale(${scale})`,
+    opacity: String(opacity),
+    zIndex: String(zIndex)
   }
-  if (dist === 1) {
-    return { transform: 'scale(0.82)', opacity: '0.85', zIndex: '2' }
-  }
-  return { transform: 'scale(0.65)', opacity: '0.6', zIndex: '1' }
 }
 
 function scrollBoards(direction: number) {
-  const maxOffset = Math.max(0, Math.floor(boards.value.length / 2))
-  const newOffset = scrollOffset.value + direction
-  if (newOffset >= -maxOffset && newOffset <= maxOffset) {
-    scrollOffset.value = newOffset
+  const newIndex = activeBoard.value + direction
+  if (newIndex >= 0 && newIndex < boards.value.length) {
+    activeBoard.value = newIndex
   }
 }
 
@@ -124,7 +129,9 @@ onMounted(async () => {
     if (res.data) {
       if (res.data.title) dailyData.value.title = res.data.title
       if (res.data.subtitle) dailyData.value.subtitle = res.data.subtitle
-      if (res.data.boards) boards.value = res.data.boards
+      if (res.data.boards && res.data.boards.length > 0) {
+        boards.value = res.data.boards
+      }
     }
   } catch {
     // Default boards if no data
@@ -135,6 +142,10 @@ onMounted(async () => {
       { image: null, style: 'huaban2' },
       { image: null, style: 'huaban1' }
     ]
+  }
+  // Set initial active to center
+  if (boards.value.length > 0) {
+    activeBoard.value = Math.floor(boards.value.length / 2)
   }
 })
 </script>
@@ -251,27 +262,24 @@ onMounted(async () => {
 .boards-section {
   position: relative;
   padding: 40px 0 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.boards-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  padding: 0 80px;
-  min-height: 420px;
   overflow: hidden;
 }
 
-/* Board item */
-.board-item {
-  flex-shrink: 0;
-  width: 220px;
-  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+.boards-container {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  width: 100%;
+}
+
+/* Board item - absolute positioned for carousel centering */
+.board-item {
+  position: absolute;
+  width: 220px;
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  cursor: pointer;
 }
 
 .board-item.board-center {
@@ -308,7 +316,7 @@ onMounted(async () => {
   background-position: center;
 }
 
-/* Arrow buttons */
+/* Arrow buttons - semi-transparent */
 .arrow-btn {
   position: absolute;
   top: 50%;
@@ -350,11 +358,6 @@ onMounted(async () => {
   .daily-hero { padding: 140px 24px 40px; }
   .daily-title { font-size: 28px; }
   .daily-subtitle { font-size: 16px; }
-
-  .boards-container {
-    gap: 16px;
-    padding: 0 60px;
-  }
 
   .board-item {
     width: 160px;

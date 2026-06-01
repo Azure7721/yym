@@ -10,6 +10,7 @@ export interface Project {
   category: string | null
   year: string | null
   cover_image: string | null
+  envelope_image: string | null
   pdf_file: string | null
   tags: string | null
   is_featured: number

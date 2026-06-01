@@ -7,7 +7,33 @@
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <span class="nav-section-label">作品</span>
+          <span class="nav-section-label">关于我 (About Me)</span>
+          <router-link to="/admin/personal/basic" class="nav-item" active-class="active">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            基本信息
+          </router-link>
+          <router-link to="/admin/personal/honors" class="nav-item" active-class="active">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M7 14l-1 4 4-2 4 2-1-4" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            获奖荣誉
+          </router-link>
+          <router-link to="/admin/personal/experience" class="nav-item" active-class="active">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="7" y1="8" x2="13" y2="8" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="7" y1="12" x2="11" y2="12" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            经历
+          </router-link>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-label">作品 (Works)</span>
           <router-link to="/admin" class="nav-item" exact-active-class="active">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <rect x="2" y="2" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
@@ -20,39 +46,7 @@
         </div>
 
         <div class="nav-section">
-          <span class="nav-section-label">个人信息</span>
-          <router-link to="/admin/personal/basic" class="nav-item" active-class="active">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-            基本信息
-          </router-link>
-          <router-link to="/admin/personal/experience" class="nav-item" active-class="active">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
-              <line x1="7" y1="8" x2="13" y2="8" stroke="currentColor" stroke-width="1.5"/>
-              <line x1="7" y1="12" x2="11" y2="12" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-            经历
-          </router-link>
-          <router-link to="/admin/personal/skills" class="nav-item" active-class="active">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M10 2l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6l2-6z" stroke="currentColor" stroke-width="1.5" fill="none"/>
-            </svg>
-            技能
-          </router-link>
-          <router-link to="/admin/personal/honors" class="nav-item" active-class="active">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M7 14l-1 4 4-2 4 2-1-4" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-            荣誉
-          </router-link>
-        </div>
-
-        <div class="nav-section">
-          <span class="nav-section-label">其他页面</span>
+          <span class="nav-section-label">日常 (Daily)</span>
           <router-link to="/admin/daily" class="nav-item" active-class="active">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
@@ -126,6 +120,7 @@ onMounted(async () => {
   font-style: italic;
   font-size: 22px;
   color: white;
+  text-decoration: none;
 }
 
 .sidebar-tag {

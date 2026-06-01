@@ -114,8 +114,8 @@ const saving = ref(false)
 const showToast = ref(false)
 
 const clipPaths = {
-  huaban1: '/images/figma/huaban1.jpg',
-  huaban2: '/images/figma/huaban2.jpg'
+  huaban1: '/images/figma/huaban1.png',
+  huaban2: '/images/figma/huaban2.png'
 }
 
 const form = reactive({

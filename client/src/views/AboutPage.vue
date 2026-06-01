@@ -1,12 +1,12 @@
 <template>
   <div class="about-page">
-    <!-- Navigation -->
+    <!-- Navigation (no "关于我") -->
     <nav class="nav">
       <router-link to="/" class="nav-logo">PORTFOLIO</router-link>
       <div class="nav-center">
         <router-link to="/about" class="nav-link nav-active">ABOUT ME</router-link>
         <router-link to="/works" class="nav-link">WORKS</router-link>
-        <span class="nav-link nav-disabled">DAILY</span>
+        <router-link to="/daily" class="nav-link">DAILY</router-link>
       </div>
       <div class="nav-icons">
         <svg class="nav-icon" width="31" height="31" viewBox="0 0 31 31" fill="none">
@@ -21,32 +21,53 @@
       </div>
     </nav>
 
-    <!-- Title area -->
+    <!-- Title area - click "About Me" to reset stacking -->
     <div class="about-header">
-      <div class="about-title-group">
-        <h1 class="about-title">About</h1>
+      <div class="about-title-group" @click="resetCards">
+        <h1 class="about-title about-title-about">About</h1>
         <h1 class="about-title about-title-me">Me</h1>
       </div>
+
       <div class="about-header-content">
         <!-- Left sidebar tabs - always at same z-level -->
+        <!-- Each tab is a strip with a pin circle on top -->
+        <!-- Click tab: bring to front + toggle expand/collapse -->
         <div class="sidebar-tabs">
           <div
-            v-for="card in cards"
-            :key="card.id"
-            class="sidebar-tab"
-            :style="{ background: card.tabColor }"
-            :class="{ active: activeCard === card.id }"
-            @click="setActiveCard(card.id)"
-          ></div>
+            ref="experienceTabRef"
+            class="sidebar-tab tab-experience"
+            :class="{ active: activeCard === 'experience' }"
+            @click="toggleCard('experience')"
+          >
+            <div class="tab-pin pin-experience"></div>
+          </div>
+          <div
+            ref="honorTabRef"
+            class="sidebar-tab tab-honor"
+            :class="{ active: activeCard === 'honors' }"
+            @click="toggleCard('honors')"
+          >
+            <div class="tab-pin pin-honor"></div>
+          </div>
+          <div
+            ref="basicTabRef"
+            class="sidebar-tab tab-basic"
+            :class="{ active: activeCard === 'basic' }"
+            @click="toggleCard('basic')"
+          >
+            <div class="tab-pin pin-basic"></div>
+          </div>
         </div>
 
         <!-- Stacked cards area -->
-        <div class="stacked-cards" ref="stackedArea">
-          <!-- Experience card (bottom layer) -->
+        <div class="stacked-cards">
+          <!-- Experience card (back layer - tallest, full width) -->
+          <!-- Click card: bring to front only. Click tab: expand/collapse -->
           <div
+            ref="experienceCardRef"
             class="stacked-card card-experience"
-            :class="{ active: activeCard === 'experience', 'behind-honor': activeCard !== 'experience' && activeCard !== 'honors' }"
-            :style="{ zIndex: getZIndex('experience') }"
+            :class="{ active: activeCard === 'experience', collapsed: collapsedCards.has('experience') }"
+            :style="getCardStyle('experience')"
             @click="setActiveCard('experience')"
           >
             <div class="card-inner">
@@ -68,9 +89,10 @@
 
           <!-- Honor card (middle layer) -->
           <div
+            ref="honorCardRef"
             class="stacked-card card-honor"
-            :class="{ active: activeCard === 'honors' }"
-            :style="{ zIndex: getZIndex('honors') }"
+            :class="{ active: activeCard === 'honors', collapsed: collapsedCards.has('honors') }"
+            :style="getCardStyle('honors')"
             @click="setActiveCard('honors')"
           >
             <div class="card-inner">
@@ -93,11 +115,12 @@
             </div>
           </div>
 
-          <!-- Basic Information card (top layer) -->
+          <!-- Basic Information card (front layer - shortest) -->
           <div
+            ref="basicCardRef"
             class="stacked-card card-basic"
-            :class="{ active: activeCard === 'basic' }"
-            :style="{ zIndex: getZIndex('basic') }"
+            :class="{ active: activeCard === 'basic', collapsed: collapsedCards.has('basic') }"
+            :style="getCardStyle('basic')"
             @click="setActiveCard('basic')"
           >
             <div class="card-inner">
@@ -107,7 +130,7 @@
               </div>
               <div class="card-content">
                 <div class="basic-layout">
-                  <!-- Left: photo + contact -->
+                  <!-- Left: photo + contact below photo -->
                   <div class="basic-left">
                     <div class="basic-photo" v-if="photoPath">
                       <img :src="photoPath" alt="个人照片" />
@@ -174,7 +197,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePortfolioStore } from '@/stores/portfolio'
 import api from '@/utils/api'
@@ -183,14 +206,15 @@ const store = usePortfolioStore()
 const route = useRoute()
 const photoPath = ref<string | null>(null)
 const activeCard = ref('basic')
-const stackedArea = ref<HTMLElement>()
-
-// Three cards configuration
-const cards = [
-  { id: 'basic', en: 'Basic Information', cn: '基本信息', tabColor: '#93847B' },
-  { id: 'honors', en: 'Honor', cn: '获奖荣誉', tabColor: '#EAD287' },
-  { id: 'experience', en: 'Experience', cn: '经历', tabColor: '#EDE3D7' }
-]
+// Track which cards are collapsed (for tab click animation)
+const collapsedCards = ref<Set<string>>(new Set())
+// Refs for measuring card heights
+const basicCardRef = ref<HTMLElement>()
+const honorCardRef = ref<HTMLElement>()
+const experienceCardRef = ref<HTMLElement>()
+const basicTabRef = ref<HTMLElement>()
+const honorTabRef = ref<HTMLElement>()
+const experienceTabRef = ref<HTMLElement>()
 
 // Default labels for basic info fields
 const defaultLabels: Record<string, string> = {
@@ -215,18 +239,13 @@ const savedLabels = computed(() => {
   return {}
 })
 
-// Helper to get label for a key
 function getLabel(key: string): string {
   return savedLabels.value[key] || defaultLabels[key] || key
 }
 
-// Name
 const nameValue = computed(() => basicInfo.value?.name || '')
-
-// Hometown
 const hometownValue = computed(() => basicInfo.value?.hometown || '')
 
-// Education fields: school, education (degree), major, political, GPA
 const educationFields = computed(() => {
   if (!basicInfo.value) return []
   const eduKeys = ['school', 'education', 'major', 'political', 'gpa']
@@ -236,7 +255,6 @@ const educationFields = computed(() => {
     .filter(item => item.value)
 })
 
-// Course fields
 const courseFields = computed(() => {
   if (!basicInfo.value) return []
   return Object.entries(basicInfo.value)
@@ -245,7 +263,6 @@ const courseFields = computed(() => {
     .filter(item => item.value)
 })
 
-// Software skills
 const softwareSkills = computed(() => {
   if (!basicInfo.value) return []
   return Object.entries(basicInfo.value)
@@ -260,7 +277,6 @@ const softwareSkills = computed(() => {
     .filter(item => item.name)
 })
 
-// Contact fields: phone, email, wechat
 const contactInfo = computed(() => {
   if (!basicInfo.value) return []
   const contactKeys = ['phone', 'email', 'wechat']
@@ -270,7 +286,6 @@ const contactInfo = computed(() => {
     .filter(item => item.value)
 })
 
-// Other fields (not in any specific category)
 const otherFields = computed(() => {
   if (!basicInfo.value) return []
   const usedKeys = new Set([
@@ -295,24 +310,79 @@ const honorsItems = computed(() => {
   return s?.content?.items || []
 })
 
-// Z-index logic: active card on top, others behind
-function getZIndex(cardId: string): number {
-  if (activeCard.value === cardId) return 3
-  if (cardId === 'basic') return 1
-  if (cardId === 'honors') return 2
-  return 1
+// Figma fixed positions (cards never move, only z-index changes):
+// Experience: y=0,    h=600  (back - tallest)
+// Honor:      y=104,  h=505  (middle)
+// Basic Info: y=291,  h=309  (front - shortest)
+//
+// Stacking: Experience(back) → Honor(middle) → Basic(front)
+// Active card gets highest z-index
+
+function getCardStyle(cardId: string) {
+  if (activeCard.value === cardId) {
+    return { zIndex: 3 }
+  }
+  if (activeCard.value === 'basic') {
+    if (cardId === 'honors') return { zIndex: 2 }
+    if (cardId === 'experience') return { zIndex: 1 }
+  }
+  if (activeCard.value === 'honors') {
+    if (cardId === 'experience') return { zIndex: 1 }
+    if (cardId === 'basic') return { zIndex: 2 }
+  }
+  if (activeCard.value === 'experience') {
+    if (cardId === 'honors') return { zIndex: 2 }
+    if (cardId === 'basic') return { zIndex: 1 }
+  }
+  return { zIndex: 1 }
 }
 
+// Click card directly: bring to front, ensure expanded
 function setActiveCard(cardId: string) {
   activeCard.value = cardId
+  collapsedCards.value.delete(cardId)
 }
 
-// Reset when navigating to About from home
+// Click sidebar tab: bring to front + toggle expand/collapse
+function toggleCard(cardId: string) {
+  if (activeCard.value !== cardId) {
+    // Not active: bring to front first, then it's expanded
+    activeCard.value = cardId
+    collapsedCards.value.delete(cardId)
+  } else {
+    // Already active: toggle collapse
+    if (collapsedCards.value.has(cardId)) {
+      collapsedCards.value.delete(cardId)
+    } else {
+      collapsedCards.value.add(cardId)
+    }
+  }
+}
+
+function resetCards() {
+  activeCard.value = 'basic'
+  collapsedCards.value.clear()
+}
+
+// Reset when navigating to About
 watch(() => route.fullPath, (newPath) => {
   if (newPath === '/about') {
     activeCard.value = 'basic'
   }
 })
+
+// Sync tab heights with actual card heights
+function syncTabHeights() {
+  if (basicCardRef.value && basicTabRef.value) {
+    basicTabRef.value.style.height = basicCardRef.value.offsetHeight + 'px'
+  }
+  if (honorCardRef.value && honorTabRef.value) {
+    honorTabRef.value.style.height = honorCardRef.value.offsetHeight + 'px'
+  }
+  if (experienceCardRef.value && experienceTabRef.value) {
+    experienceTabRef.value.style.height = experienceCardRef.value.offsetHeight + 'px'
+  }
+}
 
 onMounted(async () => {
   await store.fetchPersonalInfo()
@@ -320,6 +390,13 @@ onMounted(async () => {
     const res = await api.get('/personal/photo/current')
     if (res.data.path) photoPath.value = res.data.path
   } catch {}
+  // Sync after data loads
+  nextTick(() => syncTabHeights())
+  // Watch for resize
+  const observer = new ResizeObserver(() => syncTabHeights())
+  if (basicCardRef.value) observer.observe(basicCardRef.value)
+  if (honorCardRef.value) observer.observe(honorCardRef.value)
+  if (experienceCardRef.value) observer.observe(experienceCardRef.value)
 })
 </script>
 
@@ -397,11 +474,6 @@ onMounted(async () => {
   border-radius: 2px;
 }
 
-.nav-disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
 .nav-icons {
   position: absolute;
   right: 65px;
@@ -424,6 +496,7 @@ onMounted(async () => {
 .about-title-group {
   display: flex;
   gap: 56px;
+  cursor: pointer;
 }
 
 .about-title {
@@ -433,26 +506,33 @@ onMounted(async () => {
   font-size: 70px;
   color: #544B45;
   line-height: 1.1;
+  transition: opacity 0.3s;
+}
+
+.about-title-group:hover .about-title {
+  opacity: 0.7;
 }
 
 .about-header-content {
   display: flex;
-  gap: 20px;
+  gap: 0;
   margin-top: 40px;
+  align-items: flex-start;
 }
 
-/* Sidebar tabs - always at same z-level */
+/* ===== Sidebar tabs ===== */
+/* Figma: x=0, w=50, each tab is a strip with a pin circle */
 .sidebar-tabs {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  position: relative;
+  width: 50px;
   flex-shrink: 0;
   z-index: 10;
 }
 
 .sidebar-tab {
-  width: 24px;
-  height: 80px;
+  position: absolute;
+  left: 0;
+  width: 50px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -461,7 +541,6 @@ onMounted(async () => {
 
 .sidebar-tab:hover {
   opacity: 1;
-  transform: scale(1.05);
 }
 
 .sidebar-tab.active {
@@ -469,77 +548,90 @@ onMounted(async () => {
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-/* Stacked cards */
+/* Pin circle at top of each tab - white center, inside tab */
+.tab-pin {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Experience tab: top position fixed, height synced by JS */
+.tab-experience {
+  top: 0;
+  background: #EDE3D7;
+}
+
+/* Honor tab: top position fixed, height synced by JS */
+.tab-honor {
+  top: 104px;
+  background: #EAD287;
+}
+
+/* Basic tab: top position fixed, height synced by JS */
+.tab-basic {
+  top: 291px;
+  background: #93847B;
+}
+
+/* ===== Stacked cards ===== */
 .stacked-cards {
   position: relative;
   flex: 1;
-  min-height: 700px;
+  height: 850px; /* Match tallest card */
 }
 
 .stacked-card {
   position: absolute;
-  top: 0;
   left: 0;
-  width: 100%;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              z-index 0s;
   overflow: hidden;
+  transform-origin: left center;
 }
 
-.stacked-card:hover {
-  transform: translateY(-4px);
+/* Collapse animation: completely hide like paper folding */
+.stacked-card.collapsed {
+  transform: scaleX(0) !important;
+  opacity: 0;
+  pointer-events: none;
 }
 
-/* Card states */
-.card-basic {
-  height: 480px;
-  background: #FFF2E5;
+/* ===== Card fixed positions (Figma) ===== */
+/* Experience: y=0, w=92% — back layer, tallest */
+.card-experience {
+  top: 0;
+  width: 92%;
+  min-height: 850px;
+  background: #EDE3D7;
 }
 
+/* Honor: y=104, w=46% — middle layer */
 .card-honor {
-  height: 420px;
+  top: 104px;
+  width: 46%;
+  min-height: 800px;
   background: #EAD287;
 }
 
-.card-experience {
-  height: 700px;
-  background: #BAB395;
-}
-
-/* Active card positioning */
-.card-basic.active {
-  transform: translateY(0);
-}
-
-.card-honor.active {
-  transform: translateY(0);
-}
-
-.card-experience.active {
-  transform: translateY(0);
-}
-
-/* Non-active cards: peek from behind */
-.card-basic:not(.active) {
-  transform: translateY(280px);
-  opacity: 0.85;
-}
-
-.card-honor:not(.active) {
-  transform: translateY(200px);
-  opacity: 0.85;
-}
-
-.card-experience:not(.active) {
-  transform: translateY(0);
-  opacity: 0.85;
+/* Basic Info: y=291, w=78% — front layer, shortest */
+.card-basic {
+  top: 291px;
+  width: 78%;
+  min-height: 500px;
+  background: #FFFAEE;
 }
 
 /* Card inner layout */
 .card-inner {
   width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -844,19 +936,15 @@ onMounted(async () => {
   .sidebar-tabs { display: none; }
 
   .stacked-cards {
-    min-height: auto;
+    height: auto;
   }
 
   .stacked-card {
-    position: relative;
-    height: auto !important;
-    margin-bottom: 16px;
+    position: relative !important;
     transform: none !important;
-    opacity: 1 !important;
-  }
-
-  .card-inner {
-    min-height: 300px;
+    width: 100% !important;
+    min-height: auto !important;
+    margin-bottom: 16px;
   }
 
   .card-header-basic,

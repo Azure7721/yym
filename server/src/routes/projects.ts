@@ -67,6 +67,7 @@ router.get('/:id', (req: Request, res: Response) => {
 // POST /api/projects - Create project (admin)
 router.post('/', authMiddleware, upload.fields([
   { name: 'cover', maxCount: 1 },
+  { name: 'envelope', maxCount: 1 },
   { name: 'pdf', maxCount: 1 }
 ]), (req: AuthRequest, res: Response) => {
   const { title, subtitle, description, category, year, tags, is_featured } = req.body
@@ -78,14 +79,15 @@ router.post('/', authMiddleware, upload.fields([
   }
 
   const coverPath = files?.cover?.[0] ? '/uploads/images/' + files.cover[0].filename : null
+  const envelopePath = files?.envelope?.[0] ? '/uploads/images/' + files.envelope[0].filename : null
   const pdfPath = files?.pdf?.[0] ? '/uploads/pdfs/' + files.pdf[0].filename : null
 
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max_order FROM projects').get() as any
   const sortOrder = (maxOrder?.max_order || 0) + 1
 
   const result = db.prepare(`
-    INSERT INTO projects (title, subtitle, description, category, year, cover_image, pdf_file, tags, is_featured, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO projects (title, subtitle, description, category, year, cover_image, envelope_image, pdf_file, tags, is_featured, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     title,
     subtitle || null,
@@ -93,6 +95,7 @@ router.post('/', authMiddleware, upload.fields([
     category || null,
     year || null,
     coverPath,
+    envelopePath,
     pdfPath,
     tags || null,
     is_featured ? 1 : 0,
@@ -105,6 +108,7 @@ router.post('/', authMiddleware, upload.fields([
 // PUT /api/projects/:id - Update project (admin)
 router.put('/:id', authMiddleware, upload.fields([
   { name: 'cover', maxCount: 1 },
+  { name: 'envelope', maxCount: 1 },
   { name: 'pdf', maxCount: 1 }
 ]), (req: AuthRequest, res: Response) => {
   const existing = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id) as any
@@ -120,6 +124,10 @@ router.put('/:id', authMiddleware, upload.fields([
     ? '/uploads/images/' + files.cover[0].filename
     : existing.cover_image
 
+  const envelopePath = files?.envelope?.[0]
+    ? '/uploads/images/' + files.envelope[0].filename
+    : existing.envelope_image
+
   const pdfPath = files?.pdf?.[0]
     ? '/uploads/pdfs/' + files.pdf[0].filename
     : existing.pdf_file
@@ -127,6 +135,10 @@ router.put('/:id', authMiddleware, upload.fields([
   // Delete old files if new ones uploaded
   if (files?.cover?.[0] && existing.cover_image) {
     const oldPath = path.join(__dirname, '..', '..', existing.cover_image)
+    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
+  }
+  if (files?.envelope?.[0] && existing.envelope_image) {
+    const oldPath = path.join(__dirname, '..', '..', existing.envelope_image)
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
   }
   if (files?.pdf?.[0] && existing.pdf_file) {
@@ -137,7 +149,7 @@ router.put('/:id', authMiddleware, upload.fields([
   db.prepare(`
     UPDATE projects SET
       title = ?, subtitle = ?, description = ?, category = ?, year = ?,
-      cover_image = ?, pdf_file = ?, tags = ?, is_featured = ?,
+      cover_image = ?, envelope_image = ?, pdf_file = ?, tags = ?, is_featured = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
@@ -147,6 +159,7 @@ router.put('/:id', authMiddleware, upload.fields([
     category ?? existing.category,
     year ?? existing.year,
     coverPath,
+    envelopePath,
     pdfPath,
     tags ?? existing.tags,
     is_featured !== undefined ? (is_featured ? 1 : 0) : existing.is_featured,
@@ -167,6 +180,10 @@ router.delete('/:id', authMiddleware, (req: AuthRequest, res: Response) => {
   // Delete associated files
   if (existing.cover_image) {
     const filePath = path.join(__dirname, '..', '..', existing.cover_image)
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+  }
+  if (existing.envelope_image) {
+    const filePath = path.join(__dirname, '..', '..', existing.envelope_image)
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
   }
   if (existing.pdf_file) {

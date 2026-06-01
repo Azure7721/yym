@@ -6,7 +6,7 @@
       <div class="nav-center">
         <router-link to="/about" class="nav-link">ABOUT ME</router-link>
         <router-link to="/works" class="nav-link nav-active">WORKS</router-link>
-        <span class="nav-link nav-disabled">DAILY</span>
+        <router-link to="/daily" class="nav-link">DAILY</router-link>
       </div>
       <div class="nav-icons">
         <svg class="nav-icon" width="31" height="31" viewBox="0 0 31 31" fill="none">
@@ -32,14 +32,20 @@
         :key="project.id"
         class="work-item"
         :class="index % 2 === 0 ? 'item-left' : 'item-right'"
+        :style="{ animationDelay: `${index * 0.15}s` }"
       >
         <!-- Envelope card -->
         <div class="envelope-wrapper" :style="getEnvelopeStyle(index)">
           <div class="envelope" @click="goToDetail(project.id)">
             <!-- Envelope background -->
-            <img :src="envelopeImg" alt="" class="envelope-bg" />
-            <!-- Image on envelope -->
-            <div class="envelope-image" :class="{ hovering: hoveredProject === project.id }">
+            <img :src="project.envelope_image || envelopeImg" alt="" class="envelope-bg" />
+            <!-- Image on envelope - hover to pull out -->
+            <div
+              class="envelope-image"
+              :class="{ hovering: hoveredEnvelope === project.id }"
+              @mouseenter="hoveredEnvelope = project.id"
+              @mouseleave="hoveredEnvelope = null"
+            >
               <div
                 class="envelope-img-inner"
                 :style="project.cover_image ? { backgroundImage: `url(${project.cover_image})` } : {}"
@@ -50,8 +56,8 @@
 
         <!-- Text info -->
         <div class="work-info">
-          <h2 class="work-title">{{ project.title }}</h2>
-          <p class="work-subtitle" v-if="project.subtitle">{{ project.subtitle }}</p>
+          <h2 class="work-title" v-html="formatNewlines(project.title)"></h2>
+          <p class="work-subtitle" v-if="project.subtitle" v-html="formatNewlines(project.subtitle)"></p>
           <div class="work-meta">
             <span class="work-year" v-if="project.year">{{ project.year }}</span>
             <span class="work-category" v-if="project.category">{{ project.category }}</span>
@@ -59,8 +65,9 @@
           <router-link
             :to="`/works/${project.id}`"
             class="work-link"
-            @mouseenter="hoveredProject = project.id"
-            @mouseleave="hoveredProject = null"
+            @mouseenter="hoveredLink = project.id"
+            @mouseleave="hoveredLink = null"
+            :class="{ 'link-hover': hoveredLink === project.id }"
           >
             观看 →
           </router-link>
@@ -81,18 +88,23 @@ import { usePortfolioStore } from '@/stores/portfolio'
 
 const router = useRouter()
 const store = usePortfolioStore()
-const hoveredProject = ref<number | null>(null)
+const hoveredEnvelope = ref<number | null>(null)
+const hoveredLink = ref<number | null>(null)
 const envelopeImg = '/images/figma/xinfeng.png'
 
 // Generate random envelope tilt based on index
 function getEnvelopeStyle(index: number) {
   const isLeft = index % 2 === 0
-  // Seed random-ish tilt based on index
   const seed = (index * 7 + 3) % 11
   const tilt = isLeft ? -(2 + seed * 0.5) : (2 + seed * 0.5)
   return {
     transform: `rotate(${tilt}deg)`
   }
+}
+
+// Support line breaks in titles
+function formatNewlines(text: string): string {
+  return text.replace(/\n/g, '<br>')
 }
 
 function goToDetail(id: number) {
@@ -175,11 +187,6 @@ onMounted(() => {
   height: 3px;
   background: #544B45;
   border-radius: 2px;
-}
-
-.nav-disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .nav-icons {
@@ -312,7 +319,6 @@ onMounted(() => {
   font-size: 28px;
   color: #544B45;
   line-height: 1.4;
-  white-space: pre-line;
 }
 
 .work-subtitle {
@@ -320,7 +326,6 @@ onMounted(() => {
   font-size: 18px;
   color: #93847B;
   line-height: 1.5;
-  white-space: pre-line;
 }
 
 .work-meta {
@@ -342,6 +347,7 @@ onMounted(() => {
   border-left: 1px solid #93847B;
 }
 
+/* "观看" link with hover highlight effect */
 .work-link {
   display: inline-block;
   margin-top: 8px;
@@ -351,12 +357,16 @@ onMounted(() => {
   text-decoration: none;
   transition: all 0.3s ease;
   align-self: flex-start;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
 }
 
-.work-link:hover {
+.work-link:hover,
+.work-link.link-hover {
   color: #93847B;
   transform: scale(1.08);
   letter-spacing: 1px;
+  border-bottom-color: #93847B;
 }
 
 .empty-state {

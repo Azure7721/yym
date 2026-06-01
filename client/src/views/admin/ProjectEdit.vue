@@ -63,6 +63,26 @@
       </div>
 
       <div class="form-section">
+        <h2 class="section-title">信封图片</h2>
+        <p class="section-desc">信封上显示的图片，不上传则使用默认信封。鼠标悬停时会有抽拉动效。</p>
+        <div class="upload-area" @click="triggerEnvelopeInput">
+          <div v-if="envelopePreview" class="upload-preview">
+            <img :src="envelopePreview" alt="信封图片预览" />
+            <button type="button" class="remove-btn" @click.stop="removeEnvelope">×</button>
+          </div>
+          <div v-else class="upload-placeholder">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <rect x="4" y="12" width="40" height="28" rx="3" stroke="currentColor" stroke-width="2" stroke-dasharray="6 4"/>
+              <path d="M4 12l20 14 20-14" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>点击上传信封图片</span>
+            <small>支持 JPG、PNG，留空使用默认信封</small>
+          </div>
+        </div>
+        <input ref="envelopeInput" type="file" accept="image/*" @change="handleEnvelopeChange" hidden />
+      </div>
+
+      <div class="form-section">
         <h2 class="section-title">PDF文件</h2>
         <p class="section-desc">上传PDF后，详情页会自动展示PDF的每一页内容</p>
         <div class="upload-area" @click="triggerPdfInput">
@@ -107,9 +127,12 @@ const isEdit = computed(() => !!route.params.id)
 const submitting = ref(false)
 
 const coverInput = ref<HTMLInputElement>()
+const envelopeInput = ref<HTMLInputElement>()
 const pdfInput = ref<HTMLInputElement>()
 const coverPreview = ref<string | null>(null)
 const coverFile = ref<File | null>(null)
+const envelopePreview = ref<string | null>(null)
+const envelopeFile = ref<File | null>(null)
 const pdfFile = ref<File | null>(null)
 const pdfName = ref<string | null>(null)
 
@@ -127,6 +150,10 @@ function triggerCoverInput() {
   coverInput.value?.click()
 }
 
+function triggerEnvelopeInput() {
+  envelopeInput.value?.click()
+}
+
 function triggerPdfInput() {
   pdfInput.value?.click()
 }
@@ -142,6 +169,19 @@ function removeCover() {
   coverFile.value = null
   coverPreview.value = null
   if (coverInput.value) coverInput.value.value = ''
+}
+
+function handleEnvelopeChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  envelopeFile.value = file
+  envelopePreview.value = URL.createObjectURL(file)
+}
+
+function removeEnvelope() {
+  envelopeFile.value = null
+  envelopePreview.value = null
+  if (envelopeInput.value) envelopeInput.value.value = ''
 }
 
 function handlePdfChange(e: Event) {
@@ -175,6 +215,9 @@ async function handleSubmit() {
 
   if (coverFile.value) {
     formData.append('cover', coverFile.value)
+  }
+  if (envelopeFile.value) {
+    formData.append('envelope', envelopeFile.value)
   }
   if (pdfFile.value) {
     formData.append('pdf', pdfFile.value)
@@ -211,6 +254,7 @@ onMounted(async () => {
       form.tags = p.tags || ''
       form.is_featured = !!p.is_featured
       if (p.cover_image) coverPreview.value = p.cover_image
+      if (p.envelope_image) envelopePreview.value = p.envelope_image
       if (p.pdf_file) pdfName.value = p.pdf_file.split('/').pop() || 'uploaded.pdf'
     } catch (e) {
       alert('加载项目失败')

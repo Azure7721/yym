@@ -56,8 +56,7 @@ const router = createRouter({
         },
         {
           path: 'personal',
-          name: 'admin-personal',
-          component: () => import('@/views/admin/PersonalEdit.vue')
+          redirect: '/admin/personal/basic'
         },
         {
           path: 'personal/basic',

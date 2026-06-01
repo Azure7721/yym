@@ -43,6 +43,7 @@ db.exec(`
     category TEXT,
     year TEXT,
     cover_image TEXT,
+    envelope_image TEXT,
     pdf_file TEXT,
     tags TEXT,
     is_featured INTEGER DEFAULT 0,
@@ -65,6 +66,13 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `)
+
+// Migration: add envelope_image column if it doesn't exist
+try {
+  db.prepare('SELECT envelope_image FROM projects LIMIT 1').get()
+} catch {
+  db.exec('ALTER TABLE projects ADD COLUMN envelope_image TEXT')
+}
 
 // Seed default admin account if not exists
 const existingAdmin = db.prepare('SELECT id FROM admin WHERE username = ?').get('admin')
